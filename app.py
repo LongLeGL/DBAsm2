@@ -154,6 +154,8 @@ class App:
 
         #Order report page
         self.frame_orderReport = tk.Frame(self.frame_mainPannel, bg = "blue")
+        self.orderButton = ctk.CTkButton(self.frame_orderReport,text='order')
+        self.orderButton.pack()
         
     def renderLoginPage(self):
         self.frame_loginPage.pack(fill='both', expand=True)
