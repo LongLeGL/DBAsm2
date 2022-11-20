@@ -153,9 +153,27 @@ class App:
         self.button_addSupplier.pack(side='bottom', padx=(1200,10), pady=(10,10))
 
         #Order report page
-        self.frame_orderReport = tk.Frame(self.frame_mainPannel, bg = "blue")
-        self.orderButton = ctk.CTkButton(self.frame_orderReport,text='order')
-        self.orderButton.pack()
+        self.frame_orderReport = tk.Frame(self.frame_mainPannel, bg = "gray18")
+        
+        #Customers table
+        cusColumns = ('code','fname', 'lname')
+        self.tree_customers = ttk.Treeview(self.frame_orderReport, columns=cusColumns, show='headings', selectmode='browse')
+        self.tree_customers.heading('code', text='Code')
+        self.tree_customers.heading('fname', text='First Name')
+        self.tree_customers.heading('lname', text='Last Name')
+        self.selectedCus = -1   # code of selected customer in the table
+        
+        def customer_selected(event):
+            for selected_cus in self.tree_customers.selection():
+                item = self.tree_customers.item(selected_cus)
+                record = item['values']
+                # get selected customer's ID
+                cusCode = record[0]
+                self.selectedCus = cusCode
+
+        self.tree_customers.bind('<<TreeviewSelect>>', customer_selected)
+
+        
         
     def renderLoginPage(self):
         self.frame_loginPage.pack(fill='both', expand=True)
@@ -163,6 +181,12 @@ class App:
         self.entry_username.pack(pady=(0,10))
         self.entry_pass.pack(pady=(0,20))
         self.button_login.pack()
+
+    def displayAllSuppliers(self):
+        # Display all suppliers at startup
+        for n in range(1, 100):
+            self.tree_suppliers.insert('', 'end', values= (n, f'Name_{n}', f'{n} DT road', f'{n}', f'11{n}22',f'0911_{n}'))
+
 
     def renderMainPage(self):
         self.sidebar.pack(fill='y', side='left')
@@ -180,10 +204,19 @@ class App:
         self.entry_searchBar.pack(fill='x', expand=True, side='left', padx=(100,0), pady=(30,10))
         self.button_search.pack(fill='x', side='right', padx=(0,600), pady=(30,10))
 
+        self.displayAllSuppliers()
+
         #render order reports purchases page
         self.frame_orderReport.grid(row=0, column=0, sticky="nsew")
-
+        self.tree_customers.pack(fill='both', expand=True, padx=(30,30), pady=(40,10))
+        self.button_report = ctk.CTkButton(master=self.frame_orderReport, text="Generate report", text_color='white',
+                                        text_font=('Arial', 14), width=100, fg_color='grey25',
+                                        command=self.reportGenerate_button)
+        self.button_report.pack(pady=(10,10))
         self.frame_materialPurchases.tkraise()
+
+        for n in range (0,100):     #Insert all customer into customer table at startup
+            self.tree_customers.insert('','end',values=(n,f'Fname{n}', f'Lname{n}'))
 
 
     def login(self):
@@ -224,9 +257,8 @@ class App:
         #Insert sample data for Supplier table, remember to concacenate all phone numbers
         if searchInput == "*":  
             self.tree_suppliers.delete(*self.tree_suppliers.get_children())
-            #display all, remember to display all at startup
-            for n in range(1, 100):
-                self.tree_suppliers.insert('', 'end', values= (n, f'Name_{n}', f'{n} DT road', f'{n}', f'11{n}22',f'0911_{n}'))
+            #display all suppliers when searching for *
+            self.displayAllSuppliers()
         else:
             self.tree_suppliers.delete(*self.tree_suppliers.get_children())
             #display query result
@@ -289,11 +321,32 @@ class App:
                                             command=addSupplier)
         button_addSupplier.pack(side = 'bottom', pady=(5,10))
 
+    def reportGenerate_button(self):
+        # query all orders corresponding to self.selectedCus (selected customer's Ccode)
+        print("Generating report for:",self.selectedCus)
+
+        reportWindow = Toplevel(self.root_win)
+        reportWindow.geometry('1000x600')
+        reportWindow.title('Orders report')
+
+        reportContent = Text(reportWindow)
+
+        #Insert report info into reportContent
+        separatorLine = '===================================================================================\n'
+        reportContent.insert('end', f'Order reports for {"cusFname"} {"cusLname"}:\n\n')
+        for n in range(1,20):        # list each category the customer ordered, then list order for each category
+            reportContent.insert('end', f'Order reports for category {n}:\n')
+            reportContent.insert(   'end', "{:<10} {:<10} {:<10} {:<10} {:<18} {:<25}\n"
+                                    .format("Order Code", "Date", "Time", "Total Price", "Status", "Cancel reason"))
+            for n in range(1,3):    # list info of each order belongs to this category
+                reportContent.insert(   'end', "{:<10} {:<10} {:<10} {:<10} {:<18} {:<25}\n"
+                                        .format(n, n, '11h', n, 'canceled', 'reason...'))
+            reportContent.insert('end', separatorLine)
+        reportContent.pack(fill='both', expand='true', padx=(15,15), pady=(15,15))
 
 
     def run(self):
         self.renderLoginPage()
-
         self.root_win.mainloop()
 
 instance = App()
