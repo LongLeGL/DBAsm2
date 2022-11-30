@@ -251,6 +251,13 @@ ALTER TABLE
 ADD
     FOREIGN KEY (C_Code) REFERENCES Category(C_Code);
 
+--------- CONSTRAINT --------
+ALTER TABLE Category
+ADD CHECK (Name IN ('Silk', 'Khaki', 'Crewel', 'Jacquard', 'Faux silk', 'Damask'));
+
+ALTER TABLE Order_TB
+ADD CHECK (Order_Status IN ('new', 'ordered', 'partial paid', 'full paid', 'cancelled'));
+
 --------- TRIGGER ----------
 CREATE OR REPLACE TRIGGER increase_arrearage
 AFTER INSERT
