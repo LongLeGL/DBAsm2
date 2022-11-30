@@ -323,7 +323,7 @@ BEGIN
 END;
 /
 
-CREATE OR REPLACE TRIGGER update_status_arrearage_cancelled
+CREATE OR REPLACE TRIGGER update_status_cancelled
 AFTER INSERT
 ON Cancel_Order
 FOR EACH ROW
