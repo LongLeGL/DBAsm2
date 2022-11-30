@@ -191,7 +191,7 @@ CREATE TABLE Category (
     Name VARCHAR2(10) NOT NULL,
     Color VARCHAR2(20) NOT NULL,
     Quantity INTEGER CHECK (Quantity > 0) NOT NULL,
-    S_Code VARCHAR2(10) NOT NULL,
+    S_Code VARCHAR2(6) NOT NULL,
     "Date" DATE NOT NULL,
     Provided_Quantity INTEGER CHECK (Provided_Quantity > 0) NOT NULL,
     Purchased_Price INTEGER CHECK (Purchased_Price > 0) NOT NULL
