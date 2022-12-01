@@ -7,16 +7,16 @@ from tkinter.messagebox import showinfo
 import cx_Oracle
 
 dsn_tns = cx_Oracle.makedsn('localhost', '1521') # if needed, place an 'r' before any parameter in order to address special characters such as '\'.
-conn = cx_Oracle.connect(user='manager', password='luong11026', dsn=dsn_tns)
 
+conn = cx_Oracle.connect(user='manager', password='luong11026', dsn=dsn_tns)
 c = conn.cursor()
+
 
 ctk.set_appearance_mode("Light")
 ctk.set_default_color_theme("blue")
 
 class App:
     def __init__(self) -> None:
-        self.conn = None
         self.root_win = ctk.CTk()
         self.root_win.geometry(f"{1500}x{700}")
         self.root_win.resizable(False, False)
@@ -111,7 +111,7 @@ class App:
                 tree_supplies.pack(fill='both', expand=True)
 
                 # Query all orders of a supplier via suppID
-                c.execute('select * from CATEGORY where S_CODE = :ID', ID = suppID)
+                c.execute('select CATEGORY.*, newest_price.price from CATEGORY, newest_price where S_CODE = :ID and CATEGORY.c_code = newest_price.c_code', ID = suppID)
                 rows = c.fetchall()
 
                 for row in rows:
@@ -130,7 +130,7 @@ class App:
                 
 
                 for row in rows:
-                    tree_categories.insert('', 'end', values= (row[0], row[1],row[2],f'{row[3]} rolls','display latest price'))
+                    tree_categories.insert('', 'end', values= (row[0], row[1],row[2],f'{row[3]} rolls',row[8]))
 
                 def displayPrices(event):
                     for selected_category in tree_categories.selection():
@@ -423,7 +423,7 @@ class App:
 
         reportContent = Text(reportWindow)
 
-        c.execute('select * from ret where cus_code = :cusID order by c_code', cusID = self.selectedCus)
+        c.execute('select * from final_ret where cus_code = :cusID order by c_code', cusID = self.selectedCus)
         res = list(c.fetchall())
         print(res)
         #Insert report info into reportContent
@@ -456,7 +456,7 @@ class App:
                 line = list(line)
                 if line[5] == category:
                     reportContent.insert(   'end', "{:<10} {:<10} {:<10} {:<10} {:<18} {:<25}\n"
-                                        .format(line[7], line[0], line[1], line[10], line[3], 'reason...'))
+                                        .format(line[7], line[0], line[1], line[10], line[3], line[13] if line[13] != None else 'Did not cancel'))
             reportContent.insert('end', separatorLine)
         reportContent.pack(fill='both', expand='true', padx=(15,15), pady=(15,15))
 
