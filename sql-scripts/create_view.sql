@@ -30,9 +30,3 @@ select to_char(datetime, 'dd-mm-yyyy' ) datepart, to_char(datetime, 'HH24:MI:SS'
 
 create or replace view final_ret as
 select ret.*, cancel_order.reason from ret left join cancel_order on ret.o_code = cancel_order.o_code;
-
-create or replace view order_contains_bolt as
-select order_contains.*, bolt.c_code from order_contains inner join bolt on order_contains.b_code = bolt.b_code;
-
-create or replace view customer_order as
-select customer.fname, customer.lname, order_contains_bolt.* from customer inner join order_contains_bolt on customer.code = order_contains_bolt.cus_code order by cus_code;
