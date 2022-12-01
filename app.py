@@ -4,6 +4,14 @@ from tkinter import ttk
 import customtkinter as ctk
 from tkinter.messagebox import showinfo
 
+import cx_Oracle
+
+dsn_tns = cx_Oracle.makedsn('localhost', '1521') # if needed, place an 'r' before any parameter in order to address special characters such as '\'.
+
+conn = cx_Oracle.connect(user='manager', password='luong11026', dsn=dsn_tns)
+c = conn.cursor()
+
+
 ctk.set_appearance_mode("Light")
 ctk.set_default_color_theme("blue")
 
@@ -78,6 +86,7 @@ class App:
                 record = item['values']
                 # get supplier's ID
                 suppID = record[0]
+                # print(suppID)
 
                 #Generate popup window: supply tab and categories tab of currently selected supplier
                 popUp = Toplevel(self.root_win)
@@ -100,9 +109,13 @@ class App:
                 tree_supplies.heading('quantity', text='Quantity')
                 tree_supplies.heading('price', text='Purchased price')
                 tree_supplies.pack(fill='both', expand=True)
+
                 # Query all orders of a supplier via suppID
-                for n in range(1, 10):
-                    tree_supplies.insert('', 'end', values= (f'{suppID}', f'{n}/2022',f'{n}',f'{n}000'))
+                c.execute('select CATEGORY.*, newest_price.price from CATEGORY, newest_price where S_CODE = :ID and CATEGORY.c_code = newest_price.c_code', ID = suppID)
+                rows = c.fetchall()
+
+                for row in rows:
+                    tree_supplies.insert('', 'end', values= (row[1], row[5], row[6], row[7]))
 
                 #tab2: tree of categories the suppliers supplied
                 categoriesColumns = ('code','name', 'color', 'quantity', 'prices')
@@ -114,8 +127,10 @@ class App:
                 tree_categories.heading('prices', text='Current prices')
                 tree_categories.pack(fill='both', expand=True)
                 # Query all categories from a supplier via suppID
-                for n in range(1, 10):
-                    tree_categories.insert('', 'end', values= (suppID, f'name_{n}',f'color:{n}',f'{n} rolls','display latest price'))
+                
+
+                for row in rows:
+                    tree_categories.insert('', 'end', values= (row[0], row[1],row[2],f'{row[3]} rolls',row[8]))
 
                 def displayPrices(event):
                     for selected_category in tree_categories.selection():
@@ -135,8 +150,11 @@ class App:
                         tree_prices.heading('date', text='Set date')
 
                         #Query prices and dates via catCode
-                        for n in range(1, 10):
-                            tree_prices.insert('', 'end', values= (f'${n}',f'{n}/2/2023'))
+                        c.execute('select * from CURRENT_PRICE where C_CODE = :code', code = catCode)
+                        rows = c.fetchall()
+
+                        for row in rows:
+                            tree_prices.insert('', 'end', values= (row[1],row[2]))
 
 
                         tree_prices.pack(fill='both', expand=True)
@@ -173,8 +191,6 @@ class App:
 
         self.tree_customers.bind('<<TreeviewSelect>>', customer_selected)
 
-        
-        
     def renderLoginPage(self):
         self.frame_loginPage.pack(fill='both', expand=True)
         self.label_login.pack(pady=(100,100))
@@ -184,9 +200,35 @@ class App:
 
     def displayAllSuppliers(self):
         # Display all suppliers at startup
-        for n in range(1, 100):
-            self.tree_suppliers.insert('', 'end', values= (n, f'Name_{n}', f'{n} DT road', f'{n}', f'11{n}22',f'0911_{n}'))
 
+        c.execute('select * from supplier left join sup_phone_numbers on supplier.s_code = sup_phone_numbers.s_code order by supplier.s_code')
+        rows = c.fetchall()
+        # for n in range(1, 100):
+        #     self.tree_suppliers.insert('', 'end', values= (n, f'Name_{n}', f'{n} DT road', f'{n}', f'11{n}22',f'0911_{n}'))
+        code_list = []
+        suppliers = []
+
+        for row in rows:
+            if row[0] in code_list:
+                for supplier in suppliers:
+                    if supplier[0] == row[0]:
+                        supplier[7] += ' , ' + row[7]
+            else:
+                suppliers.append(list(row))
+                code_list.append(row[0])
+
+        # res = []
+        # for supplier in suppliers:
+        #     for attr in supplier:
+        #         if attr.find('800 645 7270') != -1:
+        #             res.append(supplier)
+        #             break
+
+        # print(res)
+
+        for supplier in suppliers:
+            self.tree_suppliers.insert('', 'end', values= (supplier[0], supplier[1], supplier[2], supplier[3], supplier[4], supplier[7]))
+            code_list.append(row[0])
 
     def renderMainPage(self):
         self.sidebar.pack(fill='y', side='left')
@@ -215,9 +257,13 @@ class App:
         self.button_report.pack(pady=(10,10))
         self.frame_materialPurchases.tkraise()
 
-        for n in range (0,100):     #Insert all customer into customer table at startup
-            self.tree_customers.insert('','end',values=(n,f'Fname{n}', f'Lname{n}'))
+        # for n in range (0,100):     #Insert all customer into customer table at startup
+        #     self.tree_customers.insert('','end',values=(n,f'Fname{n}', f'Lname{n}'))
 
+        c.execute('select * from CUSTOMER')
+        rows = c.fetchall()
+        for row in rows:
+            self.tree_customers.insert('','end',values=(row[0], row[1], row[2]))
 
     def login(self):
         username = self.entry_username.get()
@@ -227,7 +273,6 @@ class App:
         #verify login
         self.entry_pass.delete(0, 'end')
         self.entry_pass.insert(0, '')
-
         return True
         #else return False
 
@@ -254,16 +299,42 @@ class App:
         searchInput = self.entry_searchBar.get()
         print("search for:",searchInput)
         # execute search query
+        c.execute('select * from supplier left join sup_phone_numbers on supplier.s_code = sup_phone_numbers.s_code order by supplier.s_code')
+        rows = c.fetchall()
+        # for n in range(1, 100):
+        #     self.tree_suppliers.insert('', 'end', values= (n, f'Name_{n}', f'{n} DT road', f'{n}', f'11{n}22',f'0911_{n}'))
+        code_list = []
+        suppliers = []
+
+        for row in rows:
+            if row[0] in code_list:
+                for supplier in suppliers:
+                    if supplier[0] == row[0]:
+                        supplier[7] += ' , ' + row[7]
+            else:
+                suppliers.append(list(row))
+                code_list.append(row[0])
+
+
         #Insert sample data for Supplier table, remember to concacenate all phone numbers
         if searchInput == "*":  
             self.tree_suppliers.delete(*self.tree_suppliers.get_children())
             #display all suppliers when searching for *
             self.displayAllSuppliers()
         else:
+            res = []
+            for supplier in suppliers:
+                for attr in supplier:
+                    if (str(attr).lower()).find(searchInput.lower()) != -1:
+                        res.append(supplier)
+                        break
+
             self.tree_suppliers.delete(*self.tree_suppliers.get_children())
             #display query result
-            pass
-
+            for ele in res:
+                self.tree_suppliers.insert('', 'end', values= (ele[0], ele[1], ele[2], ele[3], ele[4], ele[7]))
+                code_list.append(row[0])
+            
     def addSupplierButton(self):
         popUp = Toplevel(self.root_win)
         popUp.geometry("600x500")
@@ -317,13 +388,34 @@ class App:
             print(name, address, bankAcc, taxCode)
             print(phoneNums)
 
+            c.execute("""insert into supplier values(:id, :name, :address, :bank_account, :tax_code, :partner_staff_code)""", ['',name, address, bankAcc, taxCode, 'EM040001'])
+            conn.commit()
+            
+            c.execute("select s_code from supplier where name = :name", name = name)
+            id = c.fetchone()
+            print(id[0])
+
+            for phoneNum in phoneNums:
+                c.execute("insert into SUP_PHONE_NUMBERS VALUES (:id, :phoneNum)", id = id[0], phoneNum = phoneNum)
+                conn.commit()
+
+            self.tree_suppliers.delete(*self.tree_suppliers.get_children())
+            self.displayAllSuppliers()
+        
         button_addSupplier = ctk.CTkButton( popUp, text='Add Supplier', fg_color='#03fcba', hover_color='gray',
                                             command=addSupplier)
         button_addSupplier.pack(side = 'bottom', pady=(5,10))
 
     def reportGenerate_button(self):
         # query all orders corresponding to self.selectedCus (selected customer's Ccode)
+        self.tree_customers.delete(*self.tree_customers.get_children())
+
         print("Generating report for:",self.selectedCus)
+
+        c.execute('select * from CUSTOMER')
+        rows = c.fetchall()
+        for row in rows:
+            self.tree_customers.insert('','end',values=(row[0], row[1], row[2]))
 
         reportWindow = Toplevel(self.root_win)
         reportWindow.geometry('1000x600')
@@ -331,16 +423,40 @@ class App:
 
         reportContent = Text(reportWindow)
 
+        c.execute('select * from final_ret where cus_code = :cusID order by c_code', cusID = self.selectedCus)
+        res = list(c.fetchall())
+        print(res)
         #Insert report info into reportContent
         separatorLine = '===================================================================================\n'
-        reportContent.insert('end', f'Order reports for {"cusFname"} {"cusLname"}:\n\n')
-        for n in range(1,20):        # list each category the customer ordered, then list order for each category
-            reportContent.insert('end', f'Order reports for category {n}:\n')
+        
+        reportContent.insert('end', f'Order reports for {res[0][11]} {res[0][12]}:\n\n')
+        
+        # for n in range(1,20):        # list each category the customer ordered, then list order for each category
+        #     reportContent.insert('end', f'Order reports for category {n}:\n')
+        #     reportContent.insert(   'end', "{:<10} {:<10} {:<10} {:<10} {:<18} {:<25}\n"
+        #                             .format("Order Code", "Date", "Time", "Total Price", "Status", "Cancel reason"))
+        #     for n in range(1,3):    # list info of each order belongs to this category
+        #         reportContent.insert(   'end', "{:<10} {:<10} {:<10} {:<10} {:<18} {:<25}\n"
+        #                                 .format(n, n, '11h', n, 'canceled', 'reason...'))
+        #     reportContent.insert('end', separatorLine)
+        
+        categories = []
+
+        for row in res:
+            row = list(row)
+            categories.append(row[5])
+
+        categories = list(set(categories))
+
+        for category in categories:        # list each category the customer ordered, then list order for each category
+            reportContent.insert('end', f'Order reports for category {category}:\n')
             reportContent.insert(   'end', "{:<10} {:<10} {:<10} {:<10} {:<18} {:<25}\n"
                                     .format("Order Code", "Date", "Time", "Total Price", "Status", "Cancel reason"))
-            for n in range(1,3):    # list info of each order belongs to this category
-                reportContent.insert(   'end', "{:<10} {:<10} {:<10} {:<10} {:<18} {:<25}\n"
-                                        .format(n, n, '11h', n, 'canceled', 'reason...'))
+            for line in res:    # list info of each order belongs to this category
+                line = list(line)
+                if line[5] == category:
+                    reportContent.insert(   'end', "{:<10} {:<10} {:<10} {:<10} {:<18} {:<25}\n"
+                                        .format(line[7], line[0], line[1], line[10], line[3], line[13] if line[13] != None else 'Did not cancel'))
             reportContent.insert('end', separatorLine)
         reportContent.pack(fill='both', expand='true', padx=(15,15), pady=(15,15))
 
