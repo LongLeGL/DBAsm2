@@ -1,4 +1,4 @@
-CREATE OR REPLACE PROCEDURE get_supplier_sorted_by_num_category(
+CREATE OR REPLACE PROCEDURE supplier_sort_categoryCount(
     start_date  IN DATE,
     end_date    IN DATE
 )
@@ -16,8 +16,6 @@ BEGIN
 END LOOP;
 
 END;
-
 /
 
--- example
-EXEC get_supplier_sorted_by_num_category('01-JAN-2017', '01-JAN-2023');
+EXEC supplier_sort_categoryCount('01-JAN-2017', '01-JAN-2023');
