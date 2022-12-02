@@ -10,14 +10,33 @@ BEGIN
 END;
 /
 
+CREATE OR REPLACE TRIGGER check_arrearage
+BEFORE INSERT
+ON Partial_Payments
+FOR EACH ROW
+DECLARE
+    ar INTEGER;
+    INVALID_AMOUNT EXCEPTION;
+BEGIN
+    SELECT  Arrearage
+    INTO    ar
+    FROM    Customer
+    WHERE   Code = :NEW.Cus_Code;
+    
+    IF :NEW.Amount > ar THEN
+        RAISE INVALID_AMOUNT;
+    END IF;
+END;
+/
+
 CREATE OR REPLACE TRIGGER decrease_arrearage
 AFTER INSERT
-ON Payment_History
+ON Partial_Payments
 FOR EACH ROW
 BEGIN
     UPDATE  Customer
     SET     Arrearage = Arrearage - :NEW.Amount
-    WHERE   Code = (SELECT Cus_Code FROM Order_TB WHERE O_Code = :NEW.O_Code);
+    WHERE   Code = :NEW.Cus_Code;
 END;
 /
 
