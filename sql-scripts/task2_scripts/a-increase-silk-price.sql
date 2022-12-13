@@ -1,5 +1,5 @@
 INSERT INTO Current_Price
-SELECT  T2.C_Code, T2.Price*1.1 as new_price, '30-NOV-2022' as today
+SELECT  T2.C_Code, T2.Price*1.1 as new_price, '13-DEC-2022' as today
 FROM
   (SELECT  p.C_Code, Max(p.Set_Date) as Set_Date
     FROM    Current_Price p, Category c
